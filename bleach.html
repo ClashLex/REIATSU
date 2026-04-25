@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLEACH — 霊圧 REIATSU PROTOCOL ∞</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200;400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#020305; --bone:#ece4d4; --ash:#7a7468;
+    --hollow:#ff5a00; --reiatsu:#8fe6ff; --teal:#00ffcc;
+    --quincy:#5aa8ff; --blood:#cc0022; --gold:#ffd060;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    overflow:hidden; background:#000;
+    font-family:'Share Tech Mono',monospace;
+    color:var(--bone); cursor:crosshair;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  #cam {
+    position:fixed; inset:0; width:100vw; height:100vh;
+    object-fit:cover; transform:scaleX(-1); z-index:1;
+    filter:saturate(.2) contrast(1.35) brightness(.55);
+    transition:filter .55s cubic-bezier(.2,.8,.2,1);
+  }
+  #cam.shikai  { filter:saturate(.25) contrast(1.45) brightness(.6); }
+  #cam.bankai  { filter:saturate(0)   contrast(1.7)  brightness(.4); }
+  #cam.quincy  { filter:saturate(.15) contrast(1.4)  brightness(.65) hue-rotate(195deg); }
+  #cam.hollow  { filter:saturate(.35) contrast(1.5)  brightness(.55) sepia(.35) hue-rotate(-18deg); }
+  #cam.cero    { filter:saturate(.4)  contrast(1.6)  brightness(.5)  hue-rotate(-15deg); }
+  #cam.mugetsu { filter:saturate(0)   contrast(2.2)  brightness(.15); }
+  #cam.bakudo  { filter:saturate(.1)  contrast(1.5)  brightness(.45) hue-rotate(45deg); }
+
+  #three, #fx, #ink, #dbg {
+    position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none;
+  }
+  #three { z-index:3; }
+  #fx    { z-index:5; mix-blend-mode:screen; }
+  #ink   { z-index:4; mix-blend-mode:multiply; opacity:.55; }
+  #dbg   { z-index:6; transform:scaleX(-1); opacity:.4; }
+
+  #scan, #vig, #grain {
+    position:fixed; inset:0; pointer-events:none;
+  }
+  #scan  { z-index:7;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);
+  }
+  #vig   { z-index:7;
+    background:radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(0,0,0,.88) 100%);
+  }
+  #grain { z-index:8; opacity:.06; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.6'/></svg>");
+  }
+
+  #ui { position:fixed; inset:0; z-index:9; pointer-events:none; }
+
+  /* Top kanji */
+  #title {
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    text-align:center;
+  }
+  #title h1 {
+    font-family:'Noto Serif JP',serif; font-weight:900;
+    font-size:clamp(1.9rem,4.6vw,3.6rem); letter-spacing:.36em;
+    color:var(--bone); line-height:1;
+    text-shadow:0 0 30px rgba(143,230,255,.22), 2px 2px 0 #000;
+  }
+  #title .sub {
+    font-size:.5rem; letter-spacing:.55em; color:var(--ash);
+    text-transform:uppercase; margin-top:6px;
+  }
+  #title .glyph {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    font-family:'Noto Serif JP',serif; font-weight:900;
+    font-size:8rem; color:rgba(143,230,255,.04); pointer-events:none;
+    z-index:-1;
+  }
+
+  /* Vertical technique panel */
+  #tech {
+    position:absolute; left:24px; top:50%; transform:translateY(-50%);
+  }
+  #tech .jp {
+    font-family:'Noto Serif JP',serif; font-weight:700;
+    font-size:clamp(1.4rem,2.8vw,2.2rem);
+    writing-mode:vertical-rl; letter-spacing:.18em;
+    color:var(--bone); opacity:0;
+    transition:color .4s, text-shadow .4s, opacity .4s;
+    text-shadow:0 0 18px rgba(232,224,208,.5);
+  }
+  #tech .en {
+    font-size:.55rem; letter-spacing:.32em; color:var(--ash);
+    writing-mode:vertical-rl; text-transform:uppercase;
+    margin-top:8px; opacity:0; transition:.4s;
+  }
+  #tech.live .jp, #tech.live .en { opacity:1; }
+
+  /* Right stats column */
+  #stats {
+    position:absolute; right:24px; top:50%; transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .stat { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+  .stat .lab {
+    font-size:.46rem; letter-spacing:.32em; color:var(--ash);
+    text-transform:uppercase; min-width:54px; text-align:right;
+  }
+  .stat .num {
+    font-size:.55rem; color:var(--bone); min-width:28px; text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  .bar {
+    width:64px; height:2px; background:rgba(255,255,255,.06);
+    border-radius:1px; overflow:hidden; position:relative;
+  }
+  .bar::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,currentColor,transparent);
+    transform:translateX(-100%); animation:scan 3s linear infinite;
+    opacity:.5; pointer-events:none;
+  }
+  @keyframes scan { to { transform:translateX(100%); } }
+  .fill {
+    height:100%; width:0%; transition:width .5s cubic-bezier(.2,.8,.2,1),
+                                       background .3s, box-shadow .3s;
+  }
+
+  /* Episode banner */
+  #banner {
+    position:absolute; bottom:62px; left:0; right:0; text-align:center;
+    opacity:0; transition:opacity .5s; pointer-events:none;
+  }
+  #banner .ep {
+    font-family:'Noto Serif JP',serif; font-weight:300;
+    font-size:clamp(1.2rem,3.6vw,2.6rem);
+    letter-spacing:.45em; color:var(--bone);
+    text-shadow:0 0 30px rgba(232,224,208,.55);
+  }
+  #banner .desc {
+    display:block; font-size:.5rem; letter-spacing:.55em;
+    color:var(--ash); margin-top:9px; text-transform:uppercase;
+  }
+
+  /* Zanpakuto burst */
+  #zan {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(.9);
+    font-family:'Noto Serif JP',serif; font-weight:900;
+    font-size:clamp(3.2rem,11vw,8rem); letter-spacing:.22em;
+    color:var(--bone); text-shadow:0 0 70px rgba(255,255,255,.4);
+    opacity:0; pointer-events:none; text-align:center;
+    transition:opacity .25s, transform .6s cubic-bezier(.2,.8,.2,1);
+  }
+  #zan.live { opacity:1; transform:translate(-50%,-50%) scale(1); }
+
+  /* Bottom hint */
+  #hint {
+    position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+    font-size:.5rem; letter-spacing:.32em; color:rgba(122,116,104,.55);
+    text-transform:uppercase; text-align:center; max-width:90vw;
+    line-height:1.7;
+  }
+
+  /* HUD top-left */
+  #hud {
+    position:absolute; top:18px; left:24px;
+    font-size:.42rem; letter-spacing:.22em; color:rgba(122,116,104,.5);
+    text-transform:uppercase; line-height:1.85;
+  }
+  #hud .v { color:var(--bone); }
+
+  /* Charge bar */
+  #charge {
+    position:absolute; bottom:108px; left:50%; transform:translateX(-50%);
+    width:min(220px,55vw); height:2px; background:rgba(255,255,255,.06);
+    overflow:hidden; opacity:0; transition:opacity .25s;
+  }
+  #charge .f {
+    height:100%; width:0%; background:var(--bone);
+    box-shadow:0 0 10px var(--bone);
+    transition:width .15s, background .15s;
+  }
+  #charge .label {
+    position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    font-size:.45rem; letter-spacing:.4em; color:var(--ash);
+    text-transform:uppercase; white-space:nowrap;
+  }
+
+  /* Audio vis */
+  #avis {
+    position:absolute; bottom:42px; left:50%; transform:translateX(-50%);
+    width:min(380px,82vw); height:28px; opacity:0; transition:opacity .5s;
+  }
+  #avis canvas { width:100%; height:100%; }
+
+  /* Pulse on technique change */
+  #pulse {
+    position:absolute; inset:0; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.18) 0%,transparent 55%);
+    transition:opacity .12s;
+  }
+
+  /* Mugetsu black overlay */
+  #mug {
+    position:absolute; inset:0; pointer-events:none; opacity:0;
+    background:linear-gradient(180deg,#000 0%,#020208 50%,#000 100%);
+    transition:opacity 1s;
+  }
+</style>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+</head>
+<body>
+
+<video id="cam" autoplay playsinline muted></video>
+<canvas id="three"></canvas>
+<canvas id="fx"></canvas>
+<canvas id="ink"></canvas>
+<canvas id="dbg"></canvas>
+<div id="scan"></div>
+<div id="vig"></div>
+<div id="grain"></div>
+
+<div id="ui">
+  <div id="title">
+    <div class="glyph">霊</div>
+    <h1>霊圧</h1>
+    <div class="sub">REIATSU PROTOCOL ∞ · SOUL REAPER SYSTEM</div>
+  </div>
+
+  <div id="tech">
+    <div class="jp" id="techJP">待機</div>
+    <div class="en" id="techEN">STANDBY</div>
+  </div>
+
+  <div id="stats">
+    <div class="stat"><div class="lab">REIATSU</div><div class="bar"><div class="fill" id="b-reiatsu" style="color:#8fe6ff;background:#8fe6ff;box-shadow:0 0 6px #8fe6ff"></div></div><div class="num" id="n-reiatsu">0</div></div>
+    <div class="stat"><div class="lab">BANKAI</div> <div class="bar"><div class="fill" id="b-bankai"  style="color:#ece4d4;background:#ece4d4;box-shadow:0 0 6px #ece4d4"></div></div><div class="num" id="n-bankai">0</div></div>
+    <div class="stat"><div class="lab">HOLLOW</div> <div class="bar"><div class="fill" id="b-hollow"  style="color:#ff5a00;background:#ff5a00;box-shadow:0 0 6px #ff5a00"></div></div><div class="num" id="n-hollow">0</div></div>
+    <div class="stat"><div class="lab">QUINCY</div> <div class="bar"><div class="fill" id="b-quincy"  style="color:#5aa8ff;background:#5aa8ff;box-shadow:0 0 6px #5aa8ff"></div></div><div class="num" id="n-quincy">0</div></div>
+    <div class="stat"><div class="lab">KIDŌ</div>   <div class="bar"><div class="fill" id="b-kido"    style="color:#ffd060;background:#ffd060;box-shadow:0 0 6px #ffd060"></div></div><div class="num" id="n-kido">0</div></div>
+  </div>
+
+  <div id="zan">斬月</div>
+  <div id="banner"><div class="ep" id="bannerEp">斬月</div><span class="desc" id="bannerDesc">ZANPAKUTŌ AWAKENED</span></div>
+
+  <div id="charge"><div class="label" id="chargeLabel">CHARGING</div><div class="f" id="chargeFill"></div></div>
+  <div id="avis"><canvas id="avisC"></canvas></div>
+  <div id="pulse"></div>
+  <div id="mug"></div>
+
+  <div id="hud">
+    <div>FPS · <span class="v" id="hudFPS">--</span></div>
+    <div>TECH · <span class="v" id="hudTech">--</span></div>
+    <div>HANDS · <span class="v" id="hudHands">0</span></div>
+    <div>GEST · <span class="v" id="hudGest">--</span></div>
+    <div>CONF · <span class="v" id="hudConf">0%</span></div>
+  </div>
+
+  <div id="hint">
+    L-OPEN · 始解 &nbsp;//&nbsp; R-OPEN · 卍解 &nbsp;//&nbsp; BOTH-OPEN · 滅却師 &nbsp;//&nbsp;
+    BOTH-FIST · 虚化 &nbsp;//&nbsp; POINT · 月牙天衝 &nbsp;//&nbsp; TWO-POINT · 虚閃 &nbsp;//&nbsp;
+    CURL · 縛道 &nbsp;//&nbsp; THREE-FINGERS·BOTH · 無月
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass     } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass     } from 'three/addons/postprocessing/ShaderPass.js';
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════════════════════════════════════ */
+const CFG = {
+  N_REISHI: 8000,        // particles per hand cloud
+  N_TRAIL:  3000,        // particles in slash/cero trail
+  CAM:    { w:1280, h:720, z:55, fov:65 },
+  BLOOM:  { strength:1.4, radius:.55, threshold:.78 },
+  DETECT: {
+    minDetect:.7, minTrack:.6,
+    pointHold:3, pointCooldown:30,
+    chargeMugetsu:55, chargeBakudo:35,
+    confLerp:.18,           // gesture confidence smoothing
+    landmarkLerp:.55,       // landmark smoothing
+  },
+  ANIM:   { lerpPos:.42, lerpMorph:.10, fadeIn:.08, fadeOut:.05, neutralRot:.003 },
+  COLORS: {
+    shikai:  new THREE.Color(.95,1.0,1.1),
+    bankai:  new THREE.Color(.15,.18,.25),
+    bankaiE: new THREE.Color(2.2,2.0,1.6),   // edge glow
+    quincy:  new THREE.Color(.35,.7,3.0),
+    hollow:  new THREE.Color(2.5,.5,.05),
+    cero:    new THREE.Color(2.8,.3,.15),
+    getsuga: new THREE.Color(2.2,1.9,1.4),
+    bakudo:  new THREE.Color(2.2,1.7,.5),
+    mugetsu: new THREE.Color(.05,.05,.08),
+    mugetsuE:new THREE.Color(1.0,.85,.6),
+  },
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EVENT BUS
+   ════════════════════════════════════════════════════════════════════════════ */
+const Bus = {
+  _:{}, on(e,f){(this._[e]=this._[e]||[]).push(f);},
+  emit(e,d){(this._[e]||[]).forEach(f=>f(d));}
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   AUDIO ENGINE — multi-layered synthesis
+   ════════════════════════════════════════════════════════════════════════════ */
+const Audio = (() => {
+  let ctx, master, analyser, ready=false, drone=null;
+  const buffers = {};
+
+  async function init() {
+    if (ready) return;
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    analyser = ctx.createAnalyser(); analyser.fftSize = 512;
+    master = ctx.createGain(); master.gain.value = .85;
+    analyser.connect(master); master.connect(ctx.destination);
+    buildBuffers();
+    ready = true;
+  }
+
+  function makeBuf(dur, rate=44100) {
+    return ctx.createBuffer(1, Math.max(1,Math.floor(dur*rate)), rate);
+  }
+
+  function buildBuffers() {
+    // Layered chime — multiple harmonics + reverb tail
+    function chime(roots, dur, gain=.28) {
+      const buf = makeBuf(dur), d = buf.getChannelData(0), sr = buf.sampleRate;
+      for (let i=0;i<d.length;i++) {
+        const t = i/sr;
+        const env = Math.exp(-t*2.5) * Math.min(1, t*30);
+        let s = 0;
+        for (const f of roots) {
+          s += Math.sin(2*Math.PI*f*t)
+             + Math.sin(2*Math.PI*f*2*t)*.4
+             + Math.sin(2*Math.PI*f*3*t)*.18;
+        }
+        // reverb tail: noise * exp
+        s += (Math.random()*2-1) * Math.exp(-t*1.5) * .08;
+        d[i] = (s/roots.length) * env * gain;
+      }
+      return buf;
+    }
+    function impact(dur=.7, gain=.55) {
+      const buf = makeBuf(dur), d = buf.getChannelData(0), sr = buf.sampleRate;
+      for (let i=0;i<d.length;i++) {
+        const t = i/sr, env = Math.exp(-t*8);
+        const sub = Math.sin(2*Math.PI*48*t)*Math.exp(-t*15);
+        const body = Math.sin(2*Math.PI*120*t*(1-t*.6))*Math.exp(-t*6);
+        const air = (Math.random()*2-1) * Math.exp(-t*4)*.5;
+        d[i] = (sub*1.2 + body*.6 + air) * env * gain;
+      }
+      return buf;
+    }
+    function beam(dur=1.2, gain=.45) {
+      const buf = makeBuf(dur), d = buf.getChannelData(0), sr = buf.sampleRate;
+      for (let i=0;i<d.length;i++) {
+        const t = i/sr;
+        const env = Math.min(1,t*15) * Math.exp(-Math.max(0,t-.4)*3);
+        const f = 80 + Math.sin(t*15)*20;
+        const s = Math.sin(2*Math.PI*f*t)*.6
+                + Math.sin(2*Math.PI*f*1.5*t)*.3
+                + (Math.random()*2-1)*.4;
+        d[i] = s * env * gain;
+      }
+      return buf;
+    }
+    function dark(dur=2.0, gain=.5) {
+      const buf = makeBuf(dur), d = buf.getChannelData(0), sr = buf.sampleRate;
+      for (let i=0;i<d.length;i++) {
+        const t = i/sr;
+        const env = Math.min(1,t*2) * Math.exp(-Math.max(0,t-.6)*1.2);
+        const f = 38 - t*4;
+        const s = Math.sin(2*Math.PI*f*t)
+                + (2*(t*f - Math.floor(t*f+.5)))*.3   // saw
+                + (Math.random()*2-1)*.15;
+        d[i] = s * env * gain;
+      }
+      return buf;
+    }
+    function noise(dur=1.0, gain=.25) {
+      const buf = makeBuf(dur), d = buf.getChannelData(0), sr = buf.sampleRate;
+      for (let i=0;i<d.length;i++) {
+        const t = i/sr, env = Math.min(1,t*30) * Math.exp(-t*2);
+        d[i] = (Math.random()*2-1) * env * gain;
+      }
+      return buf;
+    }
+
+    buffers.shikai  = chime([523,659,784,1047,1318], 1.8, .26);
+    buffers.bankai  = impact(1.2, .65);
+    buffers.quincy  = chime([880,1108,1318,1760,2093], 2.0, .22);
+    buffers.hollow  = noise(1.5, .35);
+    buffers.getsuga = impact(.85, .65);
+    buffers.cero    = beam(1.4, .55);
+    buffers.bakudo  = chime([330,415,494,659], 1.4, .25);
+    buffers.mugetsu = dark(3.5, .55);
+    buffers.fusion  = impact(1.5, .7);
+    buffers.pulse   = impact(.3, .35);
+  }
+
+  function play(name, vol=1) {
+    if (!ready||!buffers[name]) return;
+    const src = ctx.createBufferSource(); src.buffer = buffers[name];
+    const g = ctx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(analyser); src.start(0);
+  }
+
+  let droneTimeout = null;
+  function startDrone(freq, vol=.05) {
+    if (!ready) return;
+    stopDrone();
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+    const lfo = ctx.createOscillator(), lfoG = ctx.createGain();
+    const g = ctx.createGain();
+    o1.type='sine'; o2.type='sawtooth';
+    o1.frequency.value = freq;
+    o2.frequency.value = freq*2.01;
+    lfo.frequency.value = .35; lfoG.gain.value = freq*.012;
+    lfo.connect(lfoG); lfoG.connect(o1.frequency);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime+.4);
+    o1.connect(g); o2.connect(g); g.connect(analyser);
+    o1.start(); o2.start(); lfo.start();
+    drone = { o1, o2, lfo, g };
+  }
+  function stopDrone() {
+    if (!drone) return;
+    const d = drone; drone = null;
+    if (droneTimeout) { clearTimeout(droneTimeout); droneTimeout=null; }
+    try {
+      d.g.gain.cancelScheduledValues(ctx.currentTime);
+      d.g.gain.linearRampToValueAtTime(0, ctx.currentTime+.3);
+      droneTimeout = setTimeout(()=>{
+        try { d.o1.stop(); d.o2.stop(); d.lfo.stop(); }catch(e){}
+        droneTimeout = null;
+      }, 350);
+    } catch(e){}
+  }
+  function freqData() {
+    if (!analyser) return new Uint8Array(128);
+    const a = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(a);
+    return a;
+  }
+  return { init, play, startDrone, stopDrone, freqData,
+           get ready(){return ready;} };
+})();
+
+/* ════════════════════════════════════════════════════════════════════════════
+   THREE.JS SCENE
+   ════════════════════════════════════════════════════════════════════════════ */
+const threeCv = document.getElementById('three');
+const scene   = new THREE.Scene();
+const camera  = new THREE.PerspectiveCamera(CFG.CAM.fov, innerWidth/innerHeight, .1, 2000);
+camera.position.z = CFG.CAM.z;
+
+const renderer = new THREE.WebGLRenderer({ canvas:threeCv, antialias:true, alpha:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000, 0);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),
+  CFG.BLOOM.strength, CFG.BLOOM.radius, CFG.BLOOM.threshold);
+composer.addPass(bloom);
+
+/* — chromatic aberration + vignette + grade combined pass — */
+const GradePass = {
+  uniforms: {
+    tDiffuse:{value:null},
+    uChroma :{value:0},
+    uTint   :{value:new THREE.Color(1,1,1)},
+    uTime   :{value:0},
+  },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse;
+    uniform float uChroma; uniform vec3 uTint; uniform float uTime;
+    varying vec2 vUv;
+    float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+    void main(){
+      vec2 d = vUv-.5;
+      float dist = length(d);
+      vec2 off = normalize(d+1e-5) * dist * uChroma * .012;
+      float r = texture2D(tDiffuse, vUv+off).r;
+      float g = texture2D(tDiffuse, vUv).g;
+      float b = texture2D(tDiffuse, vUv-off).b;
+      vec3 c = vec3(r,g,b) * uTint;
+      // gentle film grain
+      c += (h(vUv*1024.+uTime)-.5) * .04;
+      // soft vignette
+      c *= smoothstep(1.1,.35,dist);
+      gl_FragColor = vec4(c,1.);
+    }`,
+};
+const gradePass = new ShaderPass(GradePass);
+composer.addPass(gradePass);
+
+/* canvases */
+const fxC = document.getElementById('fx'), fxX = fxC.getContext('2d');
+const inkC = document.getElementById('ink'), inkX = inkC.getContext('2d');
+const dbgC = document.getElementById('dbg'), dbgX = dbgC.getContext('2d');
+const avisC = document.getElementById('avisC'), avisX = avisC.getContext('2d');
+function resize() {
+  const w=innerWidth, h=innerHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h); composer.setSize(w,h);
+  [fxC, inkC, dbgC].forEach(c=>{c.width=w; c.height=h;});
+  avisC.width = avisC.offsetWidth; avisC.height = avisC.offsetHeight;
+}
+resize(); addEventListener('resize', resize);
+
+/* utility: screen px → world coords at z=0 */
+function s2w(sx, sy) {
+  const fov = camera.fov*Math.PI/180;
+  const hH = camera.position.z * Math.tan(fov/2);
+  const hW = hH * camera.aspect;
+  return new THREE.Vector3(
+    ((sx/innerWidth)-.5)*2*hW,
+    -((sy/innerHeight)-.5)*2*hH, 0);
+}
+function w2s(v) {
+  const fov = camera.fov*Math.PI/180;
+  const hH = camera.position.z * Math.tan(fov/2);
+  const hW = hH * camera.aspect;
+  return { x:(v.x/(2*hW)+.5)*innerWidth, y:(-v.y/(2*hH)+.5)*innerHeight };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PARTICLE SHADERS
+   ════════════════════════════════════════════════════════════════════════════ */
+const PARTICLE_VS = `
+attribute float aSize;
+attribute vec3  aColor;
+attribute float aAlpha;
+varying vec3 vColor; varying float vAlpha;
+uniform float uPR;
+void main(){
+  vec4 mv = modelViewMatrix * vec4(position,1.);
+  gl_Position = projectionMatrix * mv;
+  gl_PointSize = aSize * uPR * (220./max(1.,-mv.z));
+  vColor = aColor; vAlpha = aAlpha;
+}`;
+const PARTICLE_FS = `
+varying vec3 vColor; varying float vAlpha;
+void main(){
+  vec2 uv = gl_PointCoord*2.-1.;
+  float d = length(uv);
+  if (d>1.) discard;
+  float core = pow(max(0.,1.-d), 2.5);
+  float halo = exp(-d*3.0)*.45;
+  float i = core*1.6 + halo;
+  vec3 c = vColor + core*.5;
+  gl_FragColor = vec4(c, i*vAlpha);
+}`;
+
+function makePointSystem(count) {
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count*3);
+  const col = new Float32Array(count*3);
+  const siz = new Float32Array(count);
+  const al  = new Float32Array(count);
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('aColor',   new THREE.BufferAttribute(col,3));
+  geo.setAttribute('aSize',    new THREE.BufferAttribute(siz,1));
+  geo.setAttribute('aAlpha',   new THREE.BufferAttribute(al,1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{ uPR:{ value: Math.min(devicePixelRatio,2) } },
+    vertexShader:   PARTICLE_VS,
+    fragmentShader: PARTICLE_FS,
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.visible = false;
+  scene.add(pts);
+  return {
+    pts, geo, count, pos, col, siz, al,
+    tPos:new Float32Array(count*3),
+    tCol:new Float32Array(count*3),
+    tSiz:new Float32Array(count),
+    tAl :new Float32Array(count),
+    worldPos: new THREE.Vector3(),
+    targetPos:new THREE.Vector3(),
+    velocity: new THREE.Vector3(),
+    shape:'', visible:false, opacity:0,
+  };
+}
+
+/* shape generators ───────────────────────────────────────────────────── */
+function shapeShikai(s) {
+  // Bright reishi cloud + 4-arm spiral
+  const c = CFG.COLORS.shikai;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    const inCore = t < .18;
+    let x,y,z, r=c.r, g=c.g, b=c.b, sz=1.0;
+    if (inCore) {
+      const ρ = Math.random()*5;
+      const θ = Math.random()*6.28, φ = Math.acos(2*Math.random()-1);
+      x = ρ*Math.sin(φ)*Math.cos(θ);
+      y = ρ*Math.sin(φ)*Math.sin(θ);
+      z = ρ*Math.cos(φ);
+      sz = 2.0 + Math.random()*1.5;
+    } else {
+      const arm = i%4;
+      const a = t*11 + arm*Math.PI*.5;
+      const rad = 3 + t*22;
+      x = rad*Math.cos(a); y = rad*Math.sin(a);
+      z = (Math.random()-.5)*9*t;
+      const f = .55 + Math.random()*.55;
+      r*=f; g*=f; b*=f*.95;
+      sz = .55 + Math.random()*.6;
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=r; s.tCol[i*3+1]=g; s.tCol[i*3+2]=b;
+    s.tSiz[i] = sz; s.tAl[i] = 1;
+  }
+}
+function shapeBankai(s) {
+  // Dense black core w/ orange/gold edge crystals + spiral arms
+  const c = CFG.COLORS.bankai, e = CFG.COLORS.bankaiE;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    let x,y,z, R, G, B, sz;
+    if (t<.12) {
+      // dark core
+      const ρ = Math.random()*7;
+      const θ = Math.random()*6.28, φ = Math.acos(2*Math.random()-1);
+      x = ρ*Math.sin(φ)*Math.cos(θ);
+      y = ρ*Math.sin(φ)*Math.sin(θ);
+      z = ρ*Math.cos(φ);
+      const rim = ρ/7;
+      R = c.r + e.r*rim*.4; G = c.g + e.g*rim*.4; B = c.b + e.b*rim*.4;
+      sz = 2.5 + Math.random()*1.5;
+    } else {
+      const arm = i%6;
+      const a = -(t*16) + arm*Math.PI/3;
+      const rad = 4 + t*38;
+      x = rad*Math.cos(a); y = rad*Math.sin(a);
+      z = (Math.random()-.5)*14*t;
+      const isEdge = Math.random() > .82;
+      if (isEdge) { R=e.r; G=e.g; B=e.b; sz=1.4+Math.random()*.6; }
+      else        { R=c.r; G=c.g; B=c.b; sz=.7 +Math.random()*.6; }
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=R; s.tCol[i*3+1]=G; s.tCol[i*3+2]=B;
+    s.tSiz[i]=sz; s.tAl[i]=1;
+  }
+}
+function shapeQuincy(s) {
+  // Heilig Bogen — vertical/horizontal cross + outer ring + sparks
+  const c = CFG.COLORS.quincy;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    let x,y,z, sz = .8+Math.random()*.7;
+    let R=c.r, G=c.g, B=c.b;
+    if (t < .22) {
+      x = (Math.random()-.5)*36; y = (Math.random()-.5)*4;
+      z = (Math.random()-.5)*2;
+    } else if (t < .44) {
+      x = (Math.random()-.5)*4; y = (Math.random()-.5)*36;
+      z = (Math.random()-.5)*2;
+    } else if (t < .85) {
+      const a = t*Math.PI*2*3;
+      const r = 18 + (Math.random()-.5)*1.8;
+      x = r*Math.cos(a); y = r*Math.sin(a); z=(Math.random()-.5)*4;
+      sz = .6+Math.random()*.5;
+    } else {
+      // sparkles outside
+      const a = Math.random()*Math.PI*2;
+      const r = 22 + Math.random()*8;
+      x = r*Math.cos(a); y = r*Math.sin(a); z=(Math.random()-.5)*6;
+      const f = .4+Math.random()*.6;
+      R*=f; G*=f; B*=f;
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=R; s.tCol[i*3+1]=G; s.tCol[i*3+2]=B;
+    s.tSiz[i]=sz; s.tAl[i]=1;
+  }
+}
+function shapeHollow(s) {
+  // Violent flame plume + dense core
+  const c = CFG.COLORS.hollow;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    let x,y,z, sz, R=c.r,G=c.g,B=c.b;
+    if (t<.2) {
+      const ρ = Math.random()*6;
+      const θ = Math.random()*6.28, φ = Math.acos(2*Math.random()-1);
+      x = ρ*Math.sin(φ)*Math.cos(θ);
+      y = ρ*Math.sin(φ)*Math.sin(θ);
+      z = ρ*Math.cos(φ);
+      sz = 2.2+Math.random()*1.2;
+    } else {
+      const arm = i%5;
+      const a = t*18 + arm*Math.PI*.4;
+      const rad = 3 + t*28;
+      x = rad*Math.cos(a); y = rad*Math.sin(a);
+      z = (Math.random()-.5)*9*t;
+      const f = .6+Math.random()*.7;
+      R*=f; G*=f*(.8+Math.random()*.4); B*=.3;
+      sz = .6+Math.random()*.7;
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=R; s.tCol[i*3+1]=G; s.tCol[i*3+2]=B;
+    s.tSiz[i]=sz; s.tAl[i]=1;
+  }
+}
+function shapeGetsuga(s) {
+  // Crescent slash — arc in xy plane
+  const c = CFG.COLORS.getsuga;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    const a = -Math.PI*.55 + t*Math.PI*1.1;
+    const radius = 14 + (Math.random()-.5)*7;
+    const isEdge = radius > 18.5 || radius < 9.5;
+    const x = radius*Math.cos(a), y = radius*Math.sin(a);
+    const z = (Math.random()-.5)*5;
+    const f = isEdge ? 1 : .15;
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=c.r*f; s.tCol[i*3+1]=c.g*f; s.tCol[i*3+2]=c.b*f;
+    s.tSiz[i] = isEdge ? 2.2 : .8;
+    s.tAl[i] = 1;
+  }
+}
+function shapeCero(s) {
+  // Cero beam: cylindrical column extending forward
+  const c = CFG.COLORS.cero;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    const a = Math.random()*Math.PI*2;
+    const r = (1 + Math.random()*4) * (1 + t*.2);
+    const x = r*Math.cos(a), y = r*Math.sin(a);
+    const z = -t*60;  // extends forward
+    const isCore = r < 1.5;
+    const f = isCore ? 1.3 : (.5+Math.random()*.6);
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=c.r*f; s.tCol[i*3+1]=c.g*f; s.tCol[i*3+2]=c.b*f;
+    s.tSiz[i] = isCore ? 2.5 : .9;
+    s.tAl[i]  = 1 - t*.6;
+  }
+}
+function shapeBakudo(s) {
+  // Six-spoke binding wheel (Bakudo #61: Rikujōkōrō)
+  const c = CFG.COLORS.bakudo;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    let x,y,z,sz;
+    if (t < .65) {
+      // 6 horizontal bars
+      const bar = i%6;
+      const θ = bar*Math.PI/3;
+      const u = (Math.random()-.5) * 28;
+      const v = (Math.random()-.5) * 1.4;
+      x = u*Math.cos(θ) - v*Math.sin(θ);
+      y = u*Math.sin(θ) + v*Math.cos(θ);
+      z = (Math.random()-.5)*1.5;
+      sz = 1.4+Math.random()*.6;
+    } else {
+      // outer ring
+      const a = t*Math.PI*2*3;
+      const r = 16 + Math.random()*2;
+      x = r*Math.cos(a); y = r*Math.sin(a); z=(Math.random()-.5)*3;
+      sz = .7;
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=c.r; s.tCol[i*3+1]=c.g; s.tCol[i*3+2]=c.b;
+    s.tSiz[i]=sz; s.tAl[i]=1;
+  }
+}
+function shapeMugetsu(s) {
+  // Black void with thin gold rim arc
+  const dark = CFG.COLORS.mugetsu, edge = CFG.COLORS.mugetsuE;
+  for (let i=0;i<s.count;i++) {
+    const t = i/s.count;
+    let x,y,z, R,G,B, sz;
+    if (t<.4) {
+      const ρ = Math.random()*22;
+      const θ = Math.random()*6.28, φ = Math.acos(2*Math.random()-1);
+      x = ρ*Math.sin(φ)*Math.cos(θ);
+      y = ρ*Math.sin(φ)*Math.sin(θ);
+      z = ρ*Math.cos(φ)*.4;
+      R=dark.r; G=dark.g; B=dark.b;
+      sz = 1.5+Math.random()*1.2;
+    } else {
+      // huge crescent rim
+      const a = -Math.PI*.6 + t*Math.PI*1.2;
+      const rad = 32 + (Math.random()-.5)*4;
+      x = rad*Math.cos(a); y = rad*Math.sin(a);
+      z = (Math.random()-.5)*8;
+      const isEdge = Math.random() > .82;
+      if (isEdge) { R=edge.r; G=edge.g; B=edge.b; sz=2.0; }
+      else        { R=dark.r; G=dark.g; B=dark.b; sz=.9; }
+    }
+    s.tPos[i*3]=x; s.tPos[i*3+1]=y; s.tPos[i*3+2]=z;
+    s.tCol[i*3]=R; s.tCol[i*3+1]=G; s.tCol[i*3+2]=B;
+    s.tSiz[i]=sz; s.tAl[i]=1;
+  }
+}
+
+const sysL = makePointSystem(CFG.N_REISHI);
+const sysR = makePointSystem(CFG.N_REISHI);
+const sysC = makePointSystem(CFG.N_TRAIL);   // center / trail / mugetsu
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GEOMETRIC OVERLAYS — blade, beam, lightning, ring
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Tensa Zangetsu blade (compressed black katana shape) */
+function makeBlade() {
+  const blade = new THREE.Group();
+  // Black blade body
+  const bladeGeo = new THREE.BoxGeometry(.6, 18, .25);
+  const bladeMat = new THREE.MeshBasicMaterial({ color:0x050508, transparent:true, opacity:.95 });
+  const body = new THREE.Mesh(bladeGeo, bladeMat);
+  body.position.y = 8;
+  blade.add(body);
+  // Glowing edges
+  const edgeGeo = new THREE.BoxGeometry(.7, 18.2, .05);
+  const edgeMat = new THREE.MeshBasicMaterial({ color:0xffd060, transparent:true, opacity:.9, blending:THREE.AdditiveBlending });
+  const edge = new THREE.Mesh(edgeGeo, edgeMat);
+  edge.position.set(.4, 8, 0);
+  blade.add(edge);
+  // Hilt (small chain marker)
+  const hiltGeo = new THREE.SphereGeometry(.6, 12, 12);
+  const hiltMat = new THREE.MeshBasicMaterial({ color:0x222222 });
+  blade.add(new THREE.Mesh(hiltGeo, hiltMat));
+  blade.visible = false;
+  scene.add(blade);
+  return blade;
+}
+const blade = makeBlade();
+
+/* Cero beam (TubeGeometry, animated) */
+function makeCeroBeam() {
+  const len = 70;
+  const geo = new THREE.CylinderGeometry(2.2, 2.6, len, 24, 1, true);
+  geo.translate(0, len/2, 0);
+  geo.rotateX(Math.PI/2);
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uColor:{value: CFG.COLORS.cero }, uIntensity:{value:1} },
+    transparent:true, depthWrite:false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+    fragmentShader:`
+      uniform float uTime; uniform vec3 uColor; uniform float uIntensity;
+      varying vec2 vUv;
+      float h(vec2 p){return fract(sin(dot(p,vec2(12.9,78.2)))*43758.);}
+      void main(){
+        // radial fade from axis
+        float r = abs(vUv.x-.5)*2.;
+        float core = pow(1.-r, 3.);
+        float noise = h(vec2(vUv.y*30., uTime*5.))*.4 + .6;
+        float along = smoothstep(0.,.1,vUv.y) * smoothstep(1.,.9,vUv.y);
+        float a = (core*1.5 + (1.-r)*.4) * noise * along * uIntensity;
+        gl_FragColor = vec4(uColor*(1.+core*1.5), a);
+      }`,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.visible = false;
+  scene.add(m);
+  return m;
+}
+const ceroBeam = makeCeroBeam();
+
+/* Bakudo binding ring (animated torus) */
+function makeBakudoRing() {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(14, .35, 16, 80),
+    new THREE.MeshBasicMaterial({ color:0xffd060, transparent:true, opacity:.85, blending:THREE.AdditiveBlending })
+  );
+  g.add(ring);
+  // Six bars
+  for (let i=0;i<6;i++) {
+    const θ = i*Math.PI/3;
+    const bar = new THREE.Mesh(
+      new THREE.CylinderGeometry(.18, .18, 28, 8),
+      new THREE.MeshBasicMaterial({ color:0xffe28a, transparent:true, opacity:.9, blending:THREE.AdditiveBlending })
+    );
+    bar.rotation.z = θ + Math.PI/2;
+    g.add(bar);
+  }
+  g.visible = false;
+  scene.add(g);
+  return g;
+}
+const bakudoRing = makeBakudoRing();
+
+/* Quincy cross plane (sharp emissive cross) */
+function makeQuincyCross() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color:0x88ccff, transparent:true, opacity:.85, blending:THREE.AdditiveBlending });
+  g.add(new THREE.Mesh(new THREE.PlaneGeometry(36, 1.4), mat));
+  g.add(new THREE.Mesh(new THREE.PlaneGeometry(1.4, 36), mat));
+  g.visible = false;
+  scene.add(g);
+  return g;
+}
+const quincyCross = makeQuincyCross();
+
+/* Lightning between hands — line segments built each frame */
+const lightningGeo = new THREE.BufferGeometry();
+const lightningPos = new Float32Array(64*3);
+lightningGeo.setAttribute('position', new THREE.BufferAttribute(lightningPos,3));
+const lightning = new THREE.LineSegments(
+  lightningGeo,
+  new THREE.LineBasicMaterial({ color:0xaaccff, transparent:true, opacity:.85, blending:THREE.AdditiveBlending })
+);
+lightning.visible = false;
+scene.add(lightning);
+
+function updateLightning(a, b, intensity=1) {
+  if (!a||!b||intensity<.05) { lightning.visible=false; return; }
+  lightning.visible = true;
+  const segs = 12;
+  for (let i=0;i<segs;i++) {
+    const t1 = i/segs, t2 = (i+1)/segs;
+    const j = .9 * intensity;
+    const p1x = a.x + (b.x-a.x)*t1 + (Math.random()-.5)*j;
+    const p1y = a.y + (b.y-a.y)*t1 + (Math.random()-.5)*j;
+    const p2x = a.x + (b.x-a.x)*t2 + (Math.random()-.5)*j;
+    const p2y = a.y + (b.y-a.y)*t2 + (Math.random()-.5)*j;
+    const idx = i*6;
+    lightningPos[idx  ] = p1x; lightningPos[idx+1]=p1y; lightningPos[idx+2]=0;
+    lightningPos[idx+3] = p2x; lightningPos[idx+4]=p2y; lightningPos[idx+5]=0;
+  }
+  lightningGeo.attributes.position.needsUpdate = true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FX CANVAS — aura rings, slash wakes, ink splatters
+   ════════════════════════════════════════════════════════════════════════════ */
+const auras = [];
+function spawnAura(wx, wy, color, intensity=1) {
+  const s = w2s(new THREE.Vector3(wx,wy,0));
+  auras.push({ x:s.x, y:s.y, r:8, maxR:60+Math.random()*70*intensity,
+               alpha:.7*intensity, color, w:2 });
+}
+function updateAuras() {
+  fxX.clearRect(0,0,fxC.width,fxC.height);
+  for (let i=auras.length-1;i>=0;i--) {
+    const a = auras[i];
+    a.r += (a.maxR-a.r)*.07;
+    a.alpha *= .94;
+    if (a.alpha < .01) { auras.splice(i,1); continue; }
+    fxX.beginPath();
+    fxX.arc(a.x, a.y, a.r, 0, Math.PI*2);
+    fxX.strokeStyle = a.color + Math.floor(a.alpha*255).toString(16).padStart(2,'0');
+    fxX.lineWidth = a.w;
+    fxX.stroke();
+  }
+}
+const inks = [];
+function spawnInk(x, y, intensity, color='#ece4d4') {
+  const n = 3+Math.floor(intensity*4);
+  for (let i=0;i<n;i++) {
+    inks.push({
+      x: x+(Math.random()-.5)*intensity*45,
+      y: y+(Math.random()-.5)*intensity*45,
+      r: 12+Math.random()*intensity*55,
+      a: .45+Math.random()*.35, life:1,
+      decay:.0025+Math.random()*.005, color
+    });
+  }
+}
+function updateInk() {
+  inkX.clearRect(0,0,inkC.width,inkC.height);
+  for (let i=inks.length-1;i>=0;i--) {
+    const s = inks[i]; s.life -= s.decay;
+    if (s.life<=0) { inks.splice(i,1); continue; }
+    const a = s.a * s.life * .25;
+    inkX.beginPath(); inkX.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    inkX.fillStyle = s.color + Math.floor(a*255).toString(16).padStart(2,'0');
+    inkX.fill();
+  }
+}
+
+/* Audio visualizer */
+function drawAudioVis(color) {
+  if (!Audio.ready) return;
+  const f = Audio.freqData();
+  const W = avisC.width, H = avisC.height;
+  avisX.clearRect(0,0,W,H);
+  const bins = Math.floor(f.length/2.5), bw = W/bins;
+  for (let i=0;i<bins;i++) {
+    const v = f[i]/255; const h = v*H;
+    const a = .25 + v*.7;
+    avisX.fillStyle = color + Math.floor(a*255).toString(16).padStart(2,'0');
+    avisX.fillRect(i*bw, H-h, Math.max(1,bw-1), h);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UI MANAGER
+   ════════════════════════════════════════════════════════════════════════════ */
+const TECHS = {
+  neutral:{ jp:'待機', en:'STANDBY',
+    bars:{reiatsu:0,bankai:0,hollow:0,quincy:0,kido:0},
+    drone:0, droneVol:0, chroma:0, tint:[1,1,1], camCls:'',
+    color:'#7a7468', bloom:CFG.BLOOM.strength, shake:0 },
+  shikai:{ jp:'始解', en:'INITIAL · ZANGETSU',
+    bars:{reiatsu:75,bankai:10,hollow:5,quincy:0,kido:25},
+    drone:440, droneVol:.04, chroma:.3, tint:[1.05,1.05,1.1], camCls:'shikai',
+    color:'#ece4d4', bloom:2.2, shake:.12 },
+  bankai:{ jp:'卍解', en:'FINAL · TENSA ZANGETSU',
+    bars:{reiatsu:100,bankai:95,hollow:18,quincy:0,kido:45},
+    drone:110, droneVol:.06, chroma:.55, tint:[1.0,.95,1.05], camCls:'bankai',
+    color:'#dddddd', bloom:3.6, shake:.32 },
+  quincy:{ jp:'滅却師', en:'QUINCY · HEILIG BOGEN',
+    bars:{reiatsu:65,bankai:0,hollow:0,quincy:100,kido:30},
+    drone:880, droneVol:.045, chroma:.8, tint:[.85,.95,1.2], camCls:'quincy',
+    color:'#5aa8ff', bloom:2.7, shake:.18 },
+  hollow:{ jp:'虚化', en:'HOLLOWIFICATION',
+    bars:{reiatsu:100,bankai:55,hollow:100,quincy:0,kido:20},
+    drone:60, droneVol:.06, chroma:.45, tint:[1.2,.85,.7], camCls:'hollow',
+    color:'#ff5a00', bloom:3.2, shake:.32 },
+  getsuga:{ jp:'月牙天衝', en:'GETSUGA TENSHŌ',
+    bars:{reiatsu:100,bankai:80,hollow:35,quincy:0,kido:60},
+    drone:0, droneVol:0, chroma:.95, tint:[1.1,1.05,.95], camCls:'shikai',
+    color:'#ece4d4', bloom:5.0, shake:1.0 },
+  cero:{ jp:'虚閃', en:'CERO',
+    bars:{reiatsu:100,bankai:30,hollow:100,quincy:0,kido:15},
+    drone:0, droneVol:0, chroma:1.1, tint:[1.25,.85,.7], camCls:'cero',
+    color:'#ff5a00', bloom:5.5, shake:1.2 },
+  bakudo:{ jp:'縛道', en:'BAKUDŌ #61',
+    bars:{reiatsu:55,bankai:0,hollow:0,quincy:0,kido:100},
+    drone:330, droneVol:.04, chroma:.4, tint:[1.1,1.05,.85], camCls:'bakudo',
+    color:'#ffd060', bloom:2.3, shake:.15 },
+  fusing:{ jp:'解放', en:'REIATSU MERGE',
+    bars:{reiatsu:100,bankai:100,hollow:75,quincy:0,kido:30},
+    drone:220, droneVol:.07, chroma:.7, tint:[1.1,1.0,.95], camCls:'',
+    color:'#ffffff', bloom:4.2, shake:.5 },
+  mugetsu:{ jp:'無月', en:'FINAL GETSUGA · MUGETSU',
+    bars:{reiatsu:100,bankai:100,hollow:100,quincy:0,kido:0},
+    drone:55, droneVol:.08, chroma:1.6, tint:[.85,.85,.95], camCls:'mugetsu',
+    color:'#aaaaaa', bloom:4.5, shake:2.2 },
+};
+
+const ui = {
+  techJP : document.getElementById('techJP'),
+  techEN : document.getElementById('techEN'),
+  techBox: document.getElementById('tech'),
+  zan    : document.getElementById('zan'),
+  banner : document.getElementById('banner'),
+  bannerEp: document.getElementById('bannerEp'),
+  bannerDesc: document.getElementById('bannerDesc'),
+  cam    : document.getElementById('cam'),
+  hudFPS : document.getElementById('hudFPS'),
+  hudTech: document.getElementById('hudTech'),
+  hudHands:document.getElementById('hudHands'),
+  hudGest: document.getElementById('hudGest'),
+  hudConf: document.getElementById('hudConf'),
+  charge : document.getElementById('charge'),
+  chargeFill: document.getElementById('chargeFill'),
+  chargeLabel:document.getElementById('chargeLabel'),
+  avis   : document.getElementById('avis'),
+  pulse  : document.getElementById('pulse'),
+  mug    : document.getElementById('mug'),
+  bars   : ['reiatsu','bankai','hollow','quincy','kido'].reduce((o,k)=>{
+    o[k]={fill:document.getElementById('b-'+k),num:document.getElementById('n-'+k)}; return o;
+  }, {}),
+};
+
+let currentTech = 'neutral';
+
+function applyTech(name) {
+  const T = TECHS[name] || TECHS.neutral;
+  ui.techJP.textContent = T.jp;
+  ui.techEN.textContent = T.en;
+  ui.techJP.style.color = T.color;
+  ui.techJP.style.textShadow = `0 0 22px ${T.color}aa`;
+  ui.techEN.style.color = T.color + 'aa';
+  ui.techBox.classList.toggle('live', name !== 'neutral');
+  for (const k of Object.keys(ui.bars)) {
+    ui.bars[k].fill.style.width = T.bars[k] + '%';
+    ui.bars[k].num.textContent = T.bars[k];
+  }
+  ui.cam.className = T.camCls;
+  ui.avis.style.opacity = name !== 'neutral' ? '1' : '0';
+  ui.mug.style.opacity = name === 'mugetsu' ? '.92' : '0';
+  bloom.strength = T.bloom;
+  gradePass.uniforms.uChroma.value = T.chroma;
+  gradePass.uniforms.uTint.value.setRGB(...T.tint);
+  if (T.drone > 0) Audio.startDrone(T.drone, T.droneVol);
+  else Audio.stopDrone();
+  ui.hudTech.textContent = name.toUpperCase();
+  // pulse
+  ui.pulse.style.opacity = '.9';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ui.pulse.style.opacity='0'));
+  Audio.play('pulse', .3);
+}
+function setTech(name) {
+  if (currentTech === name) return;
+  currentTech = name;
+  applyTech(name);
+}
+
+function showBanner(ep, desc, dur=2200) {
+  ui.bannerEp.textContent = ep;
+  ui.bannerDesc.textContent = desc;
+  ui.banner.style.opacity = '1';
+  clearTimeout(showBanner._t);
+  showBanner._t = setTimeout(()=>ui.banner.style.opacity='0', dur);
+}
+function showZan(name, dur=1700) {
+  ui.zan.textContent = name; ui.zan.classList.add('live');
+  clearTimeout(showZan._t);
+  showZan._t = setTimeout(()=>ui.zan.classList.remove('live'), dur);
+}
+function showCharge(label, p) {
+  ui.charge.style.opacity = p>0 ? '1' : '0';
+  ui.chargeLabel.textContent = label;
+  ui.chargeFill.style.width = (Math.min(1,p)*100) + '%';
+  const hue = Math.round(60 - p*60);  // gold→red
+  ui.chargeFill.style.background = `hsl(${hue},100%,75%)`;
+  ui.chargeFill.style.boxShadow = `0 0 12px hsl(${hue},100%,75%)`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GESTURE ENGINE — smoothed landmarks + confidence accumulators
+   ════════════════════════════════════════════════════════════════════════════ */
+const HandFilter = {
+  L:null, R:null,
+  update(label, lm) {
+    const slot = label;  // 'L' or 'R'
+    if (!this[slot]) {
+      this[slot] = lm.map(p => ({...p}));
+    } else {
+      const k = CFG.DETECT.landmarkLerp;
+      for (let i=0;i<lm.length;i++) {
+        this[slot][i].x += (lm[i].x - this[slot][i].x)*k;
+        this[slot][i].y += (lm[i].y - this[slot][i].y)*k;
+        this[slot][i].z += (lm[i].z - this[slot][i].z)*k;
+      }
+    }
+    return this[slot];
+  },
+  clear(slot){ this[slot] = null; }
+};
+
+const lmPx = lm => ({ x:(1-lm.x)*innerWidth, y:lm.y*innerHeight });
+const fingerUp = (lm,t,p) => lm[t].y < lm[p].y;
+function countFingers(lm) {
+  let c = 0;
+  for (const [t,p] of [[8,6],[12,10],[16,14],[20,18]]) if (fingerUp(lm,t,p)) c++;
+  if (Math.abs(lm[4].x - lm[3].x) > .045) c++;
+  return c;
+}
+const isOpen  = lm => countFingers(lm) >= 4;
+const isFist  = lm => countFingers(lm) === 0;
+const isCurled= lm => countFingers(lm) <= 1 &&
+                      Math.abs(lm[8].x - lm[5].x) < .07 &&
+                      lm[8].y > lm[6].y - .005;
+function isPoint(lm) {
+  const M = .035, F = .012;
+  return (lm[6].y - lm[8].y) > M &&
+         (lm[5].y - lm[8].y) > M &&
+         (lm[12].y - lm[10].y) > F &&
+         (lm[16].y - lm[14].y) > F &&
+         (lm[20].y - lm[18].y) > F;
+}
+const isThreeUp = lm => fingerUp(lm,8,6) && fingerUp(lm,12,10) && fingerUp(lm,16,14) && !fingerUp(lm,20,18);
+function pointDir(lm) {
+  const wx = (1-lm[0].x)*innerWidth, wy = lm[0].y*innerHeight;
+  const tx = (1-lm[8].x)*innerWidth, ty = lm[8].y*innerHeight;
+  let dx = tx-wx, dy = ty-wy;
+  const len = Math.hypot(dx,dy)||1;
+  return { x:dx/len, y:dy/len, originX:tx, originY:ty };
+}
+
+/* Confidence accumulator per-gesture */
+const conf = {
+  shikai:0, bankai:0, quincy:0, hollow:0, point:0, twoPoint:0,
+  curl:0, threeBoth:0, fusion:0,
+  ring(name, on) {
+    const k = CFG.DETECT.confLerp;
+    this[name] += ((on?1:0) - this[name]) * k;
+    return this[name];
+  },
+  reset(){ for (const k of Object.keys(this)) if (typeof this[k]==='number') this[k]=0; }
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════════════════════ */
+let frame = 0, fps=0, fpsT=performance.now(), fpsF=0;
+let shake = 0;
+let getsugaActive=false, getsugaTimer=0, getsugaSys=null;
+let ceroActive=false, ceroTimer=0, ceroOrigin=new THREE.Vector3(), ceroDir=new THREE.Vector3();
+let mugetsuPhase=0, mugetsuTimer=0;
+let bakudoActive=false, bakudoTimer=0;
+let fusionActive=false, fusionPhase=0, fusionTimer=0, fusionAngle=0, fusionR=18, fusionSpeed=.07;
+let fusionCenter = new THREE.Vector3();
+let pointHold=0, pointCool=0;
+let chargeM=0, chargeB=0;
+let lastL=null, lastR=null;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MEDIAPIPE
+   ════════════════════════════════════════════════════════════════════════════ */
+const hands = new Hands({ locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+hands.setOptions({
+  maxNumHands:2, modelComplexity:1,
+  minDetectionConfidence:CFG.DETECT.minDetect,
+  minTrackingConfidence:CFG.DETECT.minTrack,
+});
+hands.onResults(onResults);
+
+function onResults(res) {
+  dbgX.clearRect(0,0,dbgC.width,dbgC.height);
+  const handCount = res.multiHandLandmarks?.length || 0;
+  ui.hudHands.textContent = handCount;
+
+  if (pointCool > 0) pointCool--;
+
+  if (handCount === 0) {
+    fadeOut(sysL); fadeOut(sysR);
+    HandFilter.clear('L'); HandFilter.clear('R');
+    pointHold=0; chargeM=0; chargeB=0;
+    showCharge('', 0);
+    if (!fusionActive && !getsugaActive && !ceroActive && mugetsuPhase===0 && !bakudoActive)
+      setTech('neutral');
+    ui.hudGest.textContent = '--';
+    ui.hudConf.textContent = '0%';
+    return;
+  }
+
+  Audio.init();
+  drawSkeleton(res);
+
+  let L=null, R=null;
+  for (let i=0;i<handCount;i++) {
+    // MP labels are mirrored vs user's actual hand because video is flipped
+    const label = res.multiHandedness[i].label;
+    const filtered = HandFilter.update(label === 'Left' ? 'R' : 'L', res.multiHandLandmarks[i]);
+    if (label === 'Left') R = filtered; else L = filtered;
+  }
+  lastL=L; lastR=R;
+
+  // Lock during ongoing techniques
+  if (fusionActive || getsugaActive || ceroActive || mugetsuPhase>0) {
+    ui.hudGest.textContent = 'LOCKED';
+    return;
+  }
+
+  // ── MUGETSU charge: both hands 3-fingers ──
+  const bothThree = L && R && isThreeUp(L) && isThreeUp(R);
+  conf.ring('threeBoth', bothThree);
+  if (conf.threeBoth > .7) {
+    chargeM++;
+    showCharge('無月 · MUGETSU', chargeM/CFG.DETECT.chargeMugetsu);
+    ui.hudGest.textContent = 'MUGETSU CHARGE';
+    if (chargeM >= CFG.DETECT.chargeMugetsu) { triggerMugetsu(); chargeM=0; }
+    return;
+  } else { chargeM=0; }
+
+  // ── BAKUDO charge: both hands curled ──
+  const bothCurled = L && R && isCurled(L) && isCurled(R);
+  conf.ring('curl', bothCurled);
+  if (conf.curl > .7 && !bakudoActive) {
+    chargeB++;
+    showCharge('縛道六十一 · BAKUDŌ', chargeB/CFG.DETECT.chargeBakudo);
+    ui.hudGest.textContent = 'BAKUDŌ CHARGE';
+    if (chargeB >= CFG.DETECT.chargeBakudo) { triggerBakudo(L, R); chargeB=0; }
+    return;
+  } else { chargeB=0; }
+  showCharge('', 0);
+
+  // ── HOLLOW (both fists) ──
+  const bothFist = L && R && isFist(L) && isFist(R);
+  conf.ring('hollow', bothFist);
+  if (conf.hollow > .7) {
+    activateHollow(L, R);
+    ui.hudGest.textContent = 'HOLLOW';
+    ui.hudConf.textContent = Math.round(conf.hollow*100)+'%';
+    return;
+  }
+
+  // ── TWO-POINT (CERO) — both hands point at each other or forward ──
+  const lPoint = L && isPoint(L), rPoint = R && isPoint(R);
+  conf.ring('twoPoint', lPoint && rPoint);
+  if (conf.twoPoint > .65 && pointCool<=0) {
+    triggerCero(L, R);
+    pointCool = CFG.DETECT.pointCooldown;
+    return;
+  }
+
+  // ── SINGLE POINT → GETSUGA (must have reiatsu visible) ──
+  if (pointCool<=0 && (lPoint || rPoint) && !(lPoint&&rPoint)) {
+    pointHold++;
+    ui.hudGest.textContent = 'POINT · '+pointHold;
+    if (pointHold >= CFG.DETECT.pointHold && (sysL.visible || sysR.visible)) {
+      triggerGetsuga(rPoint ? R : L);
+      pointCool = CFG.DETECT.pointCooldown;
+      pointHold = 0;
+      return;
+    }
+  } else {
+    pointHold = 0;
+  }
+
+  // ── QUINCY (both open) ──
+  const bothOpen = L && R && isOpen(L) && isOpen(R);
+  conf.ring('quincy', bothOpen);
+  if (conf.quincy > .7) {
+    activateQuincy(L, R);
+    ui.hudGest.textContent = 'QUINCY';
+    ui.hudConf.textContent = Math.round(conf.quincy*100)+'%';
+    return;
+  }
+
+  // ── Single-hand SHIKAI / BANKAI ──
+  const lOpen = L && isOpen(L), rOpen = R && isOpen(R);
+  conf.ring('shikai', lOpen);
+  conf.ring('bankai', rOpen);
+
+  if (lOpen) activateShikai(lmPx(L[9]));
+  else fadeOut(sysL);
+
+  if (rOpen) activateBankai(lmPx(R[9]));
+  else fadeOut(sysR);
+
+  // FUSION when both palms come close
+  if (sysL.visible && sysR.visible && lOpen && rOpen) {
+    const lp = lmPx(L[9]), rp = lmPx(R[9]);
+    const d = Math.hypot(lp.x-rp.x, lp.y-rp.y);
+    if (d < 110) { triggerFusion(lp, rp); ui.hudGest.textContent='FUSION'; return; }
+    setTech('shikai');
+    ui.hudGest.textContent = 'SHIKAI+BANKAI';
+  } else if (sysL.visible) { setTech('shikai'); ui.hudGest.textContent='SHIKAI'; }
+  else if (sysR.visible)   { setTech('bankai'); ui.hudGest.textContent='BANKAI'; }
+  else { setTech('neutral'); ui.hudGest.textContent='IDLE'; }
+
+  ui.hudConf.textContent = Math.round(Math.max(conf.shikai,conf.bankai)*100)+'%';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ACTIVATORS
+   ════════════════════════════════════════════════════════════════════════════ */
+function activateShikai(px) {
+  if (sysL.shape !== 'shikai') { shapeShikai(sysL); sysL.shape='shikai';
+    showZan('斬月'); showBanner('始解', 'INITIAL RELEASE — ZANGETSU');
+    Audio.play('shikai', .8);
+    spawnInk(px.x, px.y, 1.6, '#ece4d4');
+  }
+  sysL.targetPos.copy(s2w(px.x, px.y));
+  sysL.visible = true; sysL.pts.visible = true;
+  sysL.opacity = Math.min(1, sysL.opacity + CFG.ANIM.fadeIn);
+}
+function activateBankai(px) {
+  if (sysR.shape !== 'bankai') { shapeBankai(sysR); sysR.shape='bankai';
+    showZan('天鎖斬月'); showBanner('卍解', 'TENSA ZANGETSU');
+    Audio.play('bankai', .9);
+    spawnInk(px.x, px.y, 2.2, '#888888');
+    blade.visible = true;
+  }
+  sysR.targetPos.copy(s2w(px.x, px.y));
+  sysR.visible = true; sysR.pts.visible = true;
+  sysR.opacity = Math.min(1, sysR.opacity + CFG.ANIM.fadeIn);
+  blade.position.copy(sysR.worldPos);
+}
+function activateQuincy(L, R) {
+  const lp = lmPx(L[9]), rp = lmPx(R[9]);
+  const cx=(lp.x+rp.x)/2, cy=(lp.y+rp.y)/2;
+  if (sysL.shape !== 'quincy') { shapeQuincy(sysL); sysL.shape='quincy'; }
+  if (sysR.shape !== 'quincy') { shapeQuincy(sysR); sysR.shape='quincy'; }
+  const wp = s2w(cx, cy);
+  sysL.targetPos.copy(wp); sysR.targetPos.copy(wp);
+  sysL.visible = sysR.visible = true;
+  sysL.pts.visible = sysR.pts.visible = true;
+  sysL.opacity = Math.min(1, sysL.opacity + CFG.ANIM.fadeIn);
+  sysR.opacity = Math.min(1, sysR.opacity + CFG.ANIM.fadeIn);
+  quincyCross.visible = true;
+  quincyCross.position.copy(wp);
+  if (currentTech !== 'quincy') {
+    setTech('quincy');
+    showZan('光翼'); showBanner('滅却師', 'HEILIG BOGEN — LETZT STIL');
+    Audio.play('quincy', .8);
+    spawnInk(cx, cy, 2.2, '#5aa8ff');
+    spawnAura(wp.x, wp.y, '#5aa8ff', 1.4);
+  }
+}
+function activateHollow(L, R) {
+  const lp = lmPx(L[9]), rp = lmPx(R[9]);
+  const cx=(lp.x+rp.x)/2, cy=(lp.y+rp.y)/2;
+  if (sysL.shape !== 'hollow') { shapeHollow(sysL); sysL.shape='hollow'; }
+  if (sysR.shape !== 'hollow') { shapeHollow(sysR); sysR.shape='hollow'; }
+  const wp = s2w(cx, cy);
+  sysL.targetPos.copy(new THREE.Vector3(wp.x-9, wp.y, 0));
+  sysR.targetPos.copy(new THREE.Vector3(wp.x+9, wp.y, 0));
+  sysL.visible = sysR.visible = true;
+  sysL.pts.visible = sysR.pts.visible = true;
+  sysL.opacity = Math.min(1, sysL.opacity + CFG.ANIM.fadeIn);
+  sysR.opacity = Math.min(1, sysR.opacity + CFG.ANIM.fadeIn);
+  if (currentTech !== 'hollow') {
+    setTech('hollow');
+    showZan('滅月'); showBanner('虚化', 'HOLLOW MASK RESONANCE');
+    Audio.play('hollow', .9);
+    spawnInk(cx, cy, 3.2, '#ff5a00');
+    spawnAura(wp.x, wp.y, '#ff5a00', 1.6);
+  }
+}
+function triggerGetsuga(lm) {
+  const dir = pointDir(lm);
+  const wp = s2w(dir.originX, dir.originY);
+  getsugaActive = true; getsugaTimer = 0;
+  getsugaSys = sysC;
+  shapeGetsuga(getsugaSys); getsugaSys.shape='getsuga';
+  // snap initial particle state
+  getsugaSys.pos.set(getsugaSys.tPos);
+  getsugaSys.col.set(getsugaSys.tCol);
+  getsugaSys.siz.set(getsugaSys.tSiz);
+  getsugaSys.al.set(getsugaSys.tAl);
+  getsugaSys.geo.attributes.position.needsUpdate = true;
+  getsugaSys.geo.attributes.aColor  .needsUpdate = true;
+  getsugaSys.geo.attributes.aSize   .needsUpdate = true;
+  getsugaSys.geo.attributes.aAlpha  .needsUpdate = true;
+  getsugaSys.visible = true; getsugaSys.pts.visible = true; getsugaSys.opacity = 1;
+  getsugaSys.worldPos.copy(wp); getsugaSys.targetPos.copy(wp);
+  getsugaSys.pts.position.copy(wp);
+  getsugaSys.velocity.set(dir.x, -dir.y, .5).normalize();
+  getsugaSys.pts.rotation.z = Math.atan2(-dir.y, dir.x);
+  setTech('getsuga');
+  showBanner('月牙天衝', 'GETSUGA TENSHŌ');
+  Audio.play('getsuga', 1);
+  spawnInk(dir.originX, dir.originY, 2.5, '#ece4d4');
+  spawnAura(wp.x, wp.y, '#ece4d4', 2);
+  shake = 1;
+}
+function triggerCero(L, R) {
+  const lp = lmPx(L[9]), rp = lmPx(R[9]);
+  const cx=(lp.x+rp.x)/2, cy=(lp.y+rp.y)/2;
+  // average direction
+  const dl = pointDir(L), dr = pointDir(R);
+  const dx = (dl.x+dr.x)/2, dy = (dl.y+dr.y)/2;
+  const len = Math.hypot(dx,dy)||1;
+  ceroActive = true; ceroTimer = 0;
+  ceroOrigin.copy(s2w(cx, cy));
+  ceroDir.set(dx/len, -dy/len, .3).normalize();
+  ceroBeam.visible = true;
+  ceroBeam.position.copy(ceroOrigin);
+  // orient beam: rotate so its +z direction points along ceroDir
+  ceroBeam.lookAt(ceroOrigin.clone().add(ceroDir.clone().multiplyScalar(10)));
+  setTech('cero');
+  showBanner('虚閃', 'CERO');
+  Audio.play('cero', 1);
+  spawnInk(cx, cy, 3, '#ff5a00');
+  spawnAura(ceroOrigin.x, ceroOrigin.y, '#ff5a00', 2.2);
+  shake = 1.2;
+}
+function triggerBakudo(L, R) {
+  bakudoActive = true; bakudoTimer = 0;
+  const lp = lmPx(L[9]), rp = lmPx(R[9]);
+  const cx=(lp.x+rp.x)/2, cy=(lp.y+rp.y)/2;
+  const wp = s2w(cx, cy);
+  bakudoRing.visible = true;
+  bakudoRing.position.copy(wp);
+  bakudoRing.rotation.set(0,0,0);
+  setTech('bakudo');
+  showZan('六杖光牢'); showBanner('縛道·六十一', 'RIKUJŌKŌRŌ');
+  Audio.play('bakudo', 1);
+  spawnInk(cx, cy, 2.2, '#ffd060');
+  spawnAura(wp.x, wp.y, '#ffd060', 1.5);
+}
+function triggerMugetsu() {
+  mugetsuPhase = 1; mugetsuTimer = 0;
+  shapeMugetsu(sysC); sysC.shape='mugetsu';
+  sysC.pos.set(sysC.tPos); sysC.col.set(sysC.tCol);
+  sysC.siz.set(sysC.tSiz); sysC.al.set(sysC.tAl);
+  sysC.geo.attributes.position.needsUpdate = true;
+  sysC.geo.attributes.aColor  .needsUpdate = true;
+  sysC.geo.attributes.aSize   .needsUpdate = true;
+  sysC.geo.attributes.aAlpha  .needsUpdate = true;
+  sysC.visible = true; sysC.pts.visible = true; sysC.opacity = 1;
+  sysC.worldPos.set(0,0,0); sysC.targetPos.set(0,0,0);
+  sysC.pts.position.set(0,0,0); sysC.pts.scale.set(1,1,1); sysC.pts.rotation.set(0,0,0);
+  setTech('mugetsu');
+  showZan('無月'); showBanner('無月', 'FINAL GETSUGA TENSHŌ', 3500);
+  Audio.play('mugetsu', 1);
+  spawnInk(innerWidth/2, innerHeight/2, 6, '#222222');
+  shake = 2.0;
+}
+function triggerFusion(lp, rp) {
+  if (fusionActive) return;
+  fusionActive = true; fusionPhase = 1; fusionTimer = 0;
+  fusionAngle = 0; fusionR = 18; fusionSpeed = .07;
+  fusionCenter.copy(s2w((lp.x+rp.x)/2, (lp.y+rp.y)/2));
+  setTech('fusing');
+  showBanner('解放', 'REIATSU CONVERGENCE');
+  Audio.play('fusion', 1);
+  shake = .6;
+}
+
+function fadeOut(sys) {
+  sys.opacity -= CFG.ANIM.fadeOut;
+  if (sys.opacity <= 0) {
+    sys.opacity = 0; sys.visible = false; sys.pts.visible = false; sys.shape = '';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SKELETON DEBUG
+   ════════════════════════════════════════════════════════════════════════════ */
+const CONN = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function drawSkeleton(res) {
+  const W = dbgC.width, H = dbgC.height;
+  for (let h=0;h<res.multiHandLandmarks.length;h++) {
+    const lm = res.multiHandLandmarks[h];
+    const label = res.multiHandedness[h].label;
+    const c = label === 'Left' ? '#5aa8ff' : '#ece4d4';
+    const isP = isPoint(lm);
+    dbgX.strokeStyle = (isP ? '#ffd060' : c) + '99';
+    dbgX.lineWidth = isP ? 2.5 : 1.4;
+    for (const [a,b] of CONN) {
+      dbgX.beginPath();
+      dbgX.moveTo((1-lm[a].x)*W, lm[a].y*H);
+      dbgX.lineTo((1-lm[b].x)*W, lm[b].y*H);
+      dbgX.stroke();
+    }
+    for (let i=0;i<lm.length;i++) {
+      dbgX.beginPath();
+      const r = (i===8 && isP) ? 7 : (i===0?5:3);
+      dbgX.arc((1-lm[i].x)*W, lm[i].y*H, r, 0, Math.PI*2);
+      dbgX.fillStyle = i===8 ? (isP?'#ffd060':'#fff') : c;
+      dbgX.fill();
+    }
+    if (isP) {
+      const d = pointDir(lm);
+      dbgX.strokeStyle = '#ffd060cc'; dbgX.lineWidth = 2;
+      dbgX.beginPath();
+      dbgX.moveTo(d.originX, d.originY);
+      dbgX.lineTo(d.originX + d.x*200, d.originY + d.y*200);
+      dbgX.stroke();
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PARTICLE SYSTEM UPDATE
+   ════════════════════════════════════════════════════════════════════════════ */
+function updateSys(s) {
+  if (!s.visible && s.opacity<=0) { s.pts.visible=false; return; }
+  s.pts.visible = true;
+  s.worldPos.lerp(s.targetPos, CFG.ANIM.lerpPos);
+  s.pts.position.copy(s.worldPos);
+  const fm = Math.max(0, s.opacity);
+  for (let i=0;i<s.count*3;i++) {
+    s.pos[i] += (s.tPos[i] - s.pos[i]) * CFG.ANIM.lerpMorph;
+    s.col[i] += (s.tCol[i] - s.col[i]) * CFG.ANIM.lerpMorph;
+  }
+  for (let i=0;i<s.count;i++) {
+    s.siz[i] += (s.tSiz[i] - s.siz[i]) * CFG.ANIM.lerpMorph;
+    s.al [i] += (s.tAl [i]*fm - s.al [i]) * CFG.ANIM.lerpMorph;
+  }
+  s.geo.attributes.position.needsUpdate = true;
+  s.geo.attributes.aColor  .needsUpdate = true;
+  s.geo.attributes.aSize   .needsUpdate = true;
+  s.geo.attributes.aAlpha  .needsUpdate = true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ANIMATION LOOP
+   ════════════════════════════════════════════════════════════════════════════ */
+function animate() {
+  requestAnimationFrame(animate);
+  frame++;
+  const t = performance.now();
+  fpsF++;
+  if (t - fpsT > 800) {
+    fps = Math.round(fpsF*1000/(t-fpsT));
+    ui.hudFPS.textContent = fps;
+    fpsF=0; fpsT=t;
+  }
+  gradePass.uniforms.uTime.value = t*0.001;
+  ceroBeam.material.uniforms.uTime.value = t*0.001;
+
+  // ── Fusion progression ──
+  if (fusionActive) {
+    if (fusionPhase===1 || fusionPhase===2) {
+      fusionAngle += fusionSpeed;
+      fusionSpeed *= 1.025; fusionR *= .976;
+      if (fusionPhase===1 && fusionR < 12) fusionPhase=2;
+      const rx = fusionCenter.x + Math.cos(fusionAngle)*fusionR;
+      const ry = fusionCenter.y + Math.sin(fusionAngle)*fusionR;
+      const bx = fusionCenter.x + Math.cos(fusionAngle+Math.PI)*fusionR;
+      const by = fusionCenter.y + Math.sin(fusionAngle+Math.PI)*fusionR;
+      sysL.worldPos.set(rx,ry,0); sysL.targetPos.set(rx,ry,0); sysL.pts.position.set(rx,ry,0);
+      sysR.worldPos.set(bx,by,0); sysR.targetPos.set(bx,by,0); sysR.pts.position.set(bx,by,0);
+      sysL.pts.rotation.z += .15; sysR.pts.rotation.z -= .15;
+      // lightning between hands
+      const a = w2s(sysL.worldPos), b = w2s(sysR.worldPos);
+      // emit lightning in screen coords by also drawing on FX canvas
+      fxX.strokeStyle = '#ffffffcc'; fxX.lineWidth = 1.2;
+      fxX.beginPath();
+      const segs = 14;
+      for (let i=0;i<segs;i++) {
+        const t1=i/segs, t2=(i+1)/segs;
+        const j = 18*(1 - t1*.5);
+        const x1 = a.x+(b.x-a.x)*t1+(Math.random()-.5)*j;
+        const y1 = a.y+(b.y-a.y)*t1+(Math.random()-.5)*j;
+        const x2 = a.x+(b.x-a.x)*t2+(Math.random()-.5)*j;
+        const y2 = a.y+(b.y-a.y)*t2+(Math.random()-.5)*j;
+        if (i===0) fxX.moveTo(x1,y1); else fxX.lineTo(x1,y1);
+      }
+      fxX.stroke();
+      if (frame%6===0) { spawnAura(rx,ry,'#ece4d4'); spawnAura(bx,by,'#888888'); }
+      if (fusionR < 1.5) {
+        fusionPhase = 3; fusionTimer = 0;
+        shapeHollow(sysL); shapeHollow(sysR);
+        sysL.shape = sysR.shape = 'hollow';
+        for (let i=0;i<sysL.count*3;i++) {
+          const j1 = (Math.random()-.5)*70, j2=(Math.random()-.5)*70;
+          sysL.pos[i] += j1; sysL.tPos[i] += j1;
+          sysR.pos[i] += j2; sysR.tPos[i] += j2;
+        }
+        sysL.geo.attributes.position.needsUpdate = true;
+        sysR.geo.attributes.position.needsUpdate = true;
+        sysL.worldPos.copy(fusionCenter); sysR.worldPos.copy(fusionCenter);
+        sysL.targetPos.copy(fusionCenter); sysR.targetPos.copy(fusionCenter);
+        showBanner('解放完了','TRANSCENDENCE');
+        showZan('滅月');
+        Audio.play('fusion', 1);
+        for (let k=0;k<8;k++)
+          spawnAura(fusionCenter.x+(Math.random()-.5)*30, fusionCenter.y+(Math.random()-.5)*20, '#ff5a00', 2);
+        spawnInk(innerWidth/2, innerHeight/2, 4, '#ff5a00');
+        shake = 2;
+      }
+    } else if (fusionPhase===3) {
+      fusionTimer++;
+      const p = fusionTimer/55;
+      shake = 2*(1-p);
+      if (fusionTimer >= 55) {
+        fusionActive = false; fusionPhase = 0;
+        setTech('hollow');
+      }
+    }
+  }
+
+  // ── Getsuga ──
+  if (getsugaActive && getsugaSys) {
+    getsugaTimer++;
+    const p = getsugaTimer/85;
+    const speed = 22 * (1 + p*5);
+    const v = getsugaSys.velocity;
+    getsugaSys.worldPos.x += v.x*speed*.6;
+    getsugaSys.worldPos.y += v.y*speed*.6;
+    getsugaSys.worldPos.z += speed*.7;
+    getsugaSys.targetPos.copy(getsugaSys.worldPos);
+    getsugaSys.pts.position.copy(getsugaSys.worldPos);
+    const sc = 1 + p*4.5;
+    getsugaSys.pts.scale.set(sc, sc, sc);
+    shake = 1*(1-p);
+    if (frame%3===0) spawnAura(getsugaSys.worldPos.x, getsugaSys.worldPos.y, '#ece4d4', 1.5);
+    if (getsugaTimer > 85 || getsugaSys.worldPos.z > CFG.CAM.z+30) {
+      getsugaSys.visible = false; getsugaSys.pts.visible = false;
+      getsugaSys.opacity = 0; getsugaSys.shape = '';
+      getsugaSys.pts.scale.set(1,1,1); getsugaSys.pts.rotation.set(0,0,0);
+      getsugaSys.worldPos.set(0,0,0); getsugaSys.targetPos.set(0,0,0);
+      getsugaSys = null; getsugaActive = false;
+      setTech('neutral');
+    }
+  }
+
+  // ── Cero ──
+  if (ceroActive) {
+    ceroTimer++;
+    const p = ceroTimer/95;
+    const intensity = Math.min(1, p*4) * (1 - Math.max(0, p-.7)/.3);
+    ceroBeam.material.uniforms.uIntensity.value = intensity;
+    const sc = .4 + p*3.5;
+    ceroBeam.scale.set(1+sc*.6, 1+sc*.6, 1+sc*1.4);
+    shake = 1.2*(1-p*.7);
+    if (frame%4===0) {
+      const fwd = ceroOrigin.clone().add(ceroDir.clone().multiplyScalar(20+p*40));
+      spawnAura(fwd.x, fwd.y, '#ff5a00', 1.4);
+    }
+    if (ceroTimer > 95) {
+      ceroActive = false;
+      ceroBeam.visible = false;
+      ceroBeam.scale.set(1,1,1);
+      setTech('neutral');
+    }
+  }
+
+  // ── Bakudo ──
+  if (bakudoActive) {
+    bakudoTimer++;
+    bakudoRing.rotation.z += .025;
+    bakudoRing.rotation.x = Math.sin(bakudoTimer*.05)*.15;
+    if (bakudoTimer > 200) {
+      bakudoActive = false;
+      bakudoRing.visible = false;
+      setTech('neutral');
+    }
+  } else {
+    if (currentTech !== 'bakudo') bakudoRing.visible = false;
+  }
+
+  // ── Mugetsu ──
+  if (mugetsuPhase === 1) {
+    mugetsuTimer++;
+    sysC.pts.rotation.z -= .005;
+    if (frame%4===0) spawnAura((Math.random()-.5)*30, (Math.random()-.5)*20, '#aaa', 1.5);
+    shake = 2 * Math.exp(-mugetsuTimer*.015);
+    if (mugetsuTimer > 200) { mugetsuPhase = 2; mugetsuTimer = 0; }
+  } else if (mugetsuPhase === 2) {
+    sysC.opacity -= .015;
+    if (sysC.opacity <= 0) {
+      sysC.opacity = 0; sysC.visible = false; sysC.pts.visible = false;
+      sysC.shape = ''; mugetsuPhase = 0;
+      setTech('neutral');
+    }
+  }
+
+  // ── Hide overlay meshes when not in those modes ──
+  if (currentTech !== 'bankai' && !fusionActive) blade.visible = false;
+  else if (sysR.visible && !fusionActive) {
+    blade.visible = true;
+    blade.position.copy(sysR.worldPos);
+    blade.position.y += 4;
+    blade.rotation.z = Math.sin(frame*.04)*.15 - .3;
+  }
+  if (currentTech !== 'quincy') quincyCross.visible = false;
+  else {
+    quincyCross.rotation.z += .008;
+    quincyCross.rotation.y += .004;
+  }
+
+  // ── Lightning between hands during shikai+bankai ──
+  if (sysL.visible && sysR.visible && !fusionActive && !getsugaActive && !ceroActive
+      && (currentTech === 'shikai' || currentTech === 'bankai')) {
+    updateLightning(sysL.worldPos, sysR.worldPos, .5);
+    lightning.material.opacity = .4 + Math.random()*.4;
+  } else { lightning.visible = false; }
+
+  // ── Idle rotations ──
+  if (!fusionActive && !getsugaActive && !ceroActive && mugetsuPhase===0) {
+    const rotMap = {
+      shikai:[ .055,-.055], bankai:[-.07, .085], quincy:[.04,-.04],
+      hollow:[-.10, .12 ], bakudo:[ .015, .015],
+      neutral:[CFG.ANIM.neutralRot, -CFG.ANIM.neutralRot],
+    };
+    const r = rotMap[currentTech] || rotMap.neutral;
+    sysL.pts.rotation.z += r[0];
+    sysR.pts.rotation.z += r[1];
+  }
+  // Bankai pulse scale
+  if (currentTech === 'bankai' && !fusionActive) {
+    const p = 1 + Math.sin(frame*.05)*.06;
+    sysR.pts.scale.set(p,p,p);
+  } else if (currentTech !== 'getsuga') sysR.pts.scale.set(1,1,1);
+
+  // ── Auras for active states ──
+  if (frame%18===0) {
+    if (sysL.visible && currentTech!=='getsuga' && currentTech!=='cero') {
+      spawnAura(sysL.worldPos.x, sysL.worldPos.y,
+        currentTech==='hollow'?'#ff5a00':'#ece4d4', .8);
+    }
+    if (sysR.visible && currentTech!=='getsuga' && currentTech!=='cero') {
+      spawnAura(sysR.worldPos.x, sysR.worldPos.y,
+        currentTech==='hollow'?'#ff5a00':'#dddddd', .8);
+    }
+  }
+
+  // ── Update systems ──
+  updateSys(sysL); updateSys(sysR); updateSys(sysC);
+  updateInk(); updateAuras();
+  drawAudioVis((TECHS[currentTech]||TECHS.neutral).color);
+
+  // ── Camera shake ──
+  if (shake > .01) {
+    const s = shake * 14;
+    threeCv.style.transform = `translate(${(Math.random()-.5)*s}px,${(Math.random()-.5)*s}px)`;
+    ui.cam.style.transform = `scaleX(-1) translate(${(Math.random()-.5)*s*.3}px,${(Math.random()-.5)*s*.3}px)`;
+    shake *= .92;
+  } else {
+    threeCv.style.transform = '';
+    ui.cam.style.transform = 'scaleX(-1)';
+    shake = 0;
+  }
+
+  composer.render();
+}
+animate();
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAMERA
+   ════════════════════════════════════════════════════════════════════════════ */
+const vid = document.getElementById('cam');
+function startCamera() {
+  if (typeof Camera !== 'undefined') {
+    try {
+      new Camera(vid, {
+        onFrame: async () => { await hands.send({image:vid}); },
+        width: CFG.CAM.w, height: CFG.CAM.h,
+      }).start();
+      return;
+    } catch(e){ console.warn('Camera helper failed', e); }
+  }
+  navigator.mediaDevices.getUserMedia({
+    video:{ width:{ideal:CFG.CAM.w}, height:{ideal:CFG.CAM.h}, facingMode:'user' }
+  }).then(stream => {
+    vid.srcObject = stream; vid.play();
+    let busy = false;
+    async function tick() {
+      if (vid.readyState >= 2 && !busy) {
+        busy = true;
+        try { await hands.send({image:vid}); } catch(e){}
+        busy = false;
+      }
+      requestAnimationFrame(tick);
+    }
+    vid.addEventListener('loadeddata', tick);
+  }).catch(err => console.error('Camera error', err));
+}
+startCamera();
+
+// User-gesture audio unlock
+addEventListener('pointerdown', ()=>Audio.init(), { once:false });
+addEventListener('keydown',     ()=>Audio.init(), { once:false });
+</script>
+</body>
+</html>
