@@ -254,3 +254,5 @@ And so, the reiatsu we leave behind must burn brighter."
 
 死神 — REIATSU SYSTEM v3
 Built with caffeine, photons, and an unhealthy amount of respect for Ichigo Kurosaki.
+
+https://clashlex.github.io/bleach/
