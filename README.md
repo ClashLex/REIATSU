@@ -4,7 +4,7 @@
 > Wave your hands. Channel your reiatsu. Unleash Bankai. Fire Getsuga Tenshou.  
 > All in your browser, all from your webcam.
 
-[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-BLEACH-orange?style=for-the-badge&logo=github)](https://clashlex.github.io/bleach/)
+[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-BLEACH-orange?style=for-the-badge&logo=github)](https://clashlex.github.io/REIATSU/)
 
 ---
 
