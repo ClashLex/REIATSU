@@ -88,7 +88,7 @@ uniform float uPR;
 void main(){
   vec4 mv = modelViewMatrix * vec4(position,1.);
   gl_Position = projectionMatrix * mv;
-  gl_PointSize = aSize * uPR * (220./max(1.,-mv.z));
+  gl_PointSize = aSize * uPR * (110./max(1.,-mv.z));
   vColor = aColor; vAlpha = aAlpha;
 }`;
 const PARTICLE_FS = `
@@ -97,13 +97,12 @@ void main(){
   vec2 uv = gl_PointCoord*2.-1.;
   float d = length(uv);
   if (d>1.) discard;
-  float core = pow(max(0.,1.-d), 2.5);
-  float halo = exp(-d*3.0)*.45;
-  float i = core*1.6 + halo;
-  vec3 c = vColor + core*.5;
+  float core = pow(max(0.,1.-d), 3.5);
+  float halo = exp(-d*6.0)*.25;
+  float i = core*1.2 + halo;
+  vec3 c = vColor + core*.3;
   gl_FragColor = vec4(c, i*vAlpha);
 }`;
-
 function makePointSystem(count) {
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);

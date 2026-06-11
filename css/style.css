@@ -11,21 +11,19 @@ body {
   color:var(--bone); cursor:crosshair;
   -webkit-font-smoothing:antialiased;
 }
-
 #cam {
   position:fixed; inset:0; width:100vw; height:100vh;
   object-fit:cover; transform:scaleX(-1); z-index:1;
-  filter:saturate(.2) contrast(1.35) brightness(.55);
+  filter:none;
   transition:filter .55s cubic-bezier(.2,.8,.2,1);
 }
-#cam.shikai  { filter:saturate(.25) contrast(1.45) brightness(.6); }
-#cam.bankai  { filter:saturate(0)   contrast(1.7)  brightness(.4); }
-#cam.quincy  { filter:saturate(.15) contrast(1.4)  brightness(.65) hue-rotate(195deg); }
-#cam.hollow  { filter:saturate(.35) contrast(1.5)  brightness(.55) sepia(.35) hue-rotate(-18deg); }
-#cam.cero    { filter:saturate(.4)  contrast(1.6)  brightness(.5)  hue-rotate(-15deg); }
-#cam.mugetsu { filter:saturate(0)   contrast(2.2)  brightness(.15); }
-#cam.bakudo  { filter:saturate(.1)  contrast(1.5)  brightness(.45) hue-rotate(45deg); }
-
+#cam.shikai  { filter:none; }
+#cam.bankai  { filter:saturate(.8) contrast(1.1) brightness(.9); }
+#cam.quincy  { filter:hue-rotate(195deg); }
+#cam.hollow  { filter:sepia(.2) hue-rotate(-18deg); }
+#cam.cero    { filter:hue-rotate(-15deg); }
+#cam.mugetsu { filter:brightness(.7) saturate(.2); }
+#cam.bakudo  { filter:hue-rotate(45deg); }
 #three, #fx, #ink, #dbg {
   position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none;
 }
