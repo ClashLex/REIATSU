@@ -1,0 +1,203 @@
+:root {
+  --ink:#020305; --bone:#ece4d4; --ash:#7a7468;
+  --hollow:#ff5a00; --reiatsu:#8fe6ff; --teal:#00ffcc;
+  --quincy:#5aa8ff; --blood:#cc0022; --gold:#ffd060;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  overflow:hidden; background:#000;
+  font-family:'Share Tech Mono',monospace;
+  color:var(--bone); cursor:crosshair;
+  -webkit-font-smoothing:antialiased;
+}
+
+#cam {
+  position:fixed; inset:0; width:100vw; height:100vh;
+  object-fit:cover; transform:scaleX(-1); z-index:1;
+  filter:saturate(.2) contrast(1.35) brightness(.55);
+  transition:filter .55s cubic-bezier(.2,.8,.2,1);
+}
+#cam.shikai  { filter:saturate(.25) contrast(1.45) brightness(.6); }
+#cam.bankai  { filter:saturate(0)   contrast(1.7)  brightness(.4); }
+#cam.quincy  { filter:saturate(.15) contrast(1.4)  brightness(.65) hue-rotate(195deg); }
+#cam.hollow  { filter:saturate(.35) contrast(1.5)  brightness(.55) sepia(.35) hue-rotate(-18deg); }
+#cam.cero    { filter:saturate(.4)  contrast(1.6)  brightness(.5)  hue-rotate(-15deg); }
+#cam.mugetsu { filter:saturate(0)   contrast(2.2)  brightness(.15); }
+#cam.bakudo  { filter:saturate(.1)  contrast(1.5)  brightness(.45) hue-rotate(45deg); }
+
+#three, #fx, #ink, #dbg {
+  position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none;
+}
+#three { z-index:3; }
+#fx    { z-index:5; mix-blend-mode:screen; }
+#ink   { z-index:4; mix-blend-mode:multiply; opacity:.55; }
+#dbg   { z-index:6; transform:scaleX(-1); opacity:.4; }
+
+#scan, #vig, #grain {
+  position:fixed; inset:0; pointer-events:none;
+}
+#scan  { z-index:7;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);
+}
+#vig   { z-index:7;
+  background:radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(0,0,0,.88) 100%);
+}
+#grain { z-index:8; opacity:.06; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.6'/></svg>");
+}
+
+#ui { position:fixed; inset:0; z-index:9; pointer-events:none; }
+
+/* Top kanji */
+#title {
+  position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  text-align:center;
+}
+#title h1 {
+  font-family:'Noto Serif JP',serif; font-weight:900;
+  font-size:clamp(1.9rem,4.6vw,3.6rem); letter-spacing:.36em;
+  color:var(--bone); line-height:1;
+  text-shadow:0 0 30px rgba(143,230,255,.22), 2px 2px 0 #000;
+}
+#title .sub {
+  font-size:.5rem; letter-spacing:.55em; color:var(--ash);
+  text-transform:uppercase; margin-top:6px;
+}
+#title .glyph {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-family:'Noto Serif JP',serif; font-weight:900;
+  font-size:8rem; color:rgba(143,230,255,.04); pointer-events:none;
+  z-index:-1;
+}
+
+/* Vertical technique panel */
+#tech {
+  position:absolute; left:24px; top:50%; transform:translateY(-50%);
+}
+#tech .jp {
+  font-family:'Noto Serif JP',serif; font-weight:700;
+  font-size:clamp(1.4rem,2.8vw,2.2rem);
+  writing-mode:vertical-rl; letter-spacing:.18em;
+  color:var(--bone); opacity:0;
+  transition:color .4s, text-shadow .4s, opacity .4s;
+  text-shadow:0 0 18px rgba(232,224,208,.5);
+}
+#tech .en {
+  font-size:.55rem; letter-spacing:.32em; color:var(--ash);
+  writing-mode:vertical-rl; text-transform:uppercase;
+  margin-top:8px; opacity:0; transition:.4s;
+}
+#tech.live .jp, #tech.live .en { opacity:1; }
+
+/* Right stats column */
+#stats {
+  position:absolute; right:24px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:9px;
+}
+.stat { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.stat .lab {
+  font-size:.46rem; letter-spacing:.32em; color:var(--ash);
+  text-transform:uppercase; min-width:54px; text-align:right;
+}
+.stat .num {
+  font-size:.55rem; color:var(--bone); min-width:28px; text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.bar {
+  width:64px; height:2px; background:rgba(255,255,255,.06);
+  border-radius:1px; overflow:hidden; position:relative;
+}
+.bar::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,currentColor,transparent);
+  transform:translateX(-100%); animation:scan 3s linear infinite;
+  opacity:.5; pointer-events:none;
+}
+@keyframes scan { to { transform:translateX(100%); } }
+.fill {
+  height:100%; width:0%; transition:width .5s cubic-bezier(.2,.8,.2,1),
+                                     background .3s, box-shadow .3s;
+}
+
+/* Episode banner */
+#banner {
+  position:absolute; bottom:62px; left:0; right:0; text-align:center;
+  opacity:0; transition:opacity .5s; pointer-events:none;
+}
+#banner .ep {
+  font-family:'Noto Serif JP',serif; font-weight:300;
+  font-size:clamp(1.2rem,3.6vw,2.6rem);
+  letter-spacing:.45em; color:var(--bone);
+  text-shadow:0 0 30px rgba(232,224,208,.55);
+}
+#banner .desc {
+  display:block; font-size:.5rem; letter-spacing:.55em;
+  color:var(--ash); margin-top:9px; text-transform:uppercase;
+}
+
+/* Zanpakuto burst */
+#zan {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%) scale(.9);
+  font-family:'Noto Serif JP',serif; font-weight:900;
+  font-size:clamp(3.2rem,11vw,8rem); letter-spacing:.22em;
+  color:var(--bone); text-shadow:0 0 70px rgba(255,255,255,.4);
+  opacity:0; pointer-events:none; text-align:center;
+  transition:opacity .25s, transform .6s cubic-bezier(.2,.8,.2,1);
+}
+#zan.live { opacity:1; transform:translate(-50%,-50%) scale(1); }
+
+/* Bottom hint */
+#hint {
+  position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+  font-size:.5rem; letter-spacing:.32em; color:rgba(122,116,104,.55);
+  text-transform:uppercase; text-align:center; max-width:90vw;
+  line-height:1.7;
+}
+
+/* HUD top-left */
+#hud {
+  position:absolute; top:18px; left:24px;
+  font-size:.42rem; letter-spacing:.22em; color:rgba(122,116,104,.5);
+  text-transform:uppercase; line-height:1.85;
+}
+#hud .v { color:var(--bone); }
+
+/* Charge bar */
+#charge {
+  position:absolute; bottom:108px; left:50%; transform:translateX(-50%);
+  width:min(220px,55vw); height:2px; background:rgba(255,255,255,.06);
+  overflow:hidden; opacity:0; transition:opacity .25s;
+}
+#charge .f {
+  height:100%; width:0%; background:var(--bone);
+  box-shadow:0 0 10px var(--bone);
+  transition:width .15s, background .15s;
+}
+#charge .label {
+  position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+  font-size:.45rem; letter-spacing:.4em; color:var(--ash);
+  text-transform:uppercase; white-space:nowrap;
+}
+
+/* Audio vis */
+#avis {
+  position:absolute; bottom:42px; left:50%; transform:translateX(-50%);
+  width:min(380px,82vw); height:28px; opacity:0; transition:opacity .5s;
+}
+#avis canvas { width:100%; height:100%; }
+
+/* Pulse on technique change */
+#pulse {
+  position:absolute; inset:0; pointer-events:none; opacity:0;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.18) 0%,transparent 55%);
+  transition:opacity .12s;
+}
+
+/* Mugetsu black overlay */
+#mug {
+  position:absolute; inset:0; pointer-events:none; opacity:0;
+  background:linear-gradient(180deg,#000 0%,#020208 50%,#000 100%);
+  transition:opacity 1s;
+}
