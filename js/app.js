@@ -585,18 +585,11 @@ animate();
    ════════════════════════════════════════════════════════════════════════════ */
 const vid = document.getElementById('cam');
 function startCamera() {
-  let lastTime = 0;
-  const interval = 1000 / 30; // 30 FPS throttle
-  
   if (typeof Camera !== 'undefined') {
     try {
       new Camera(vid, {
         onFrame: async () => {
-          const now = performance.now();
-          if (now - lastTime >= interval) {
-            lastTime = now;
-            await hands.send({ image: vid });
-          }
+          await hands.send({ image: vid });
         },
         width: CFG.CAM.w, height: CFG.CAM.h,
       }).start();
@@ -611,13 +604,9 @@ function startCamera() {
     let busy = false;
     async function tick() {
       if (vid.readyState >= 2 && !busy) {
-        const now = performance.now();
-        if (now - lastTime >= interval) {
-          lastTime = now;
-          busy = true;
-          try { await hands.send({ image: vid }); } catch (e) {}
-          busy = false;
-        }
+        busy = true;
+        try { await hands.send({ image: vid }); } catch (e) {}
+        busy = false;
       }
       requestAnimationFrame(tick);
     }

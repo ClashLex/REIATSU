@@ -189,17 +189,13 @@ Open `http://localhost:8000` (or `http://localhost:3000`) and grant webcam acces
 - `three@0.160.0` (3D rendering)
 - `@mediapipe/hands` (landmark extraction)
 - `@mediapipe/camera_utils` (webcam capture helper)
-
 ---
 
-## 📊 Performance Optimization
+## 📊 Performance
 
-The application contains built-in optimizations to run efficiently:
-
-- **MediaPipe Throttle**: Hand tracking checks are throttled to 30 FPS to reduce CPU utilization.
-- **Uncapped Animation Rate**: Particle animations and Three.js rendering run at full monitor refresh rates (60FPS+) using lightweight interpolations.
-- **Lowering Load**: The particle counts (`N_REISHI`) or post-processing passes (Bloom/Chroma) can be configured lower inside `js/config.js` on mobile devices.
-
+The application is built for high-performance desktop systems:
+- **Uncapped Real-Time Tracking**: MediaPipe hand-tracking and Three.js coordinate updates run in real-time at full camera/frame rate for immediate response.
+- **GPU-Accelerated Visuals**: WebGL 2 renders particle morphing and post-processing filters at the monitor's native refresh rate (60FPS+).
 ---
 
 ## 📄 License
